@@ -44,7 +44,7 @@ export function ConversationView({
         </div>
         <Link
           href={`/conversations/${conversationId}/wiki`}
-          className="text-[12px] font-medium text-muted hover:text-ink transition-colors"
+          className="inline-flex items-center gap-2 rounded-full border border-hairline px-3 py-1.5 text-[12px] font-medium text-ink bg-surface-soft hover:border-muted-soft transition-colors"
         >
           Ouvrir le wiki →
         </Link>
