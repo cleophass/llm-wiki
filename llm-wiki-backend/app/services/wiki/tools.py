@@ -8,8 +8,10 @@ import re
 
 from app.db.wiki import get_wiki_page, get_wiki_pages_for_project
 from app.services.wiki.index import build_index
+from app.services.wiki_ingest.edit_plan import DeletePageOp
 
 logger = logging.getLogger(__name__)
+_PENDING_OPS: list[DeletePageOp] = []
 
 
 # ── Implémentations ──────────────────────────────────────────────────────────
@@ -82,6 +84,18 @@ async def _search_wiki(query: str, project_id: str) -> str:
     if not results:
         return f"Aucune correspondance pour « {query} »."
     return "\n".join(results)
+
+
+async def _delete_page(page_title: str, reason: str) -> str:
+    """Ajoute une opération de suppression de page au plan en construction."""
+    _PENDING_OPS.append(DeletePageOp(op="delete_page", page_title=page_title, reason=reason))
+    return f"Suppression planifiée pour la page « {page_title} »."
+
+
+def consume_pending_ops() -> list[DeletePageOp]:
+    ops = list(_PENDING_OPS)
+    _PENDING_OPS.clear()
+    return ops
 
 
 # ── Définitions JSON Schema ──────────────────────────────────────────────────
@@ -159,6 +173,30 @@ WIKI_TOOLS: list[dict] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "delete_page",
+            "description": (
+                "Planifie la suppression d'une page wiki. À utiliser seulement après "
+                "migration du contenu vers une autre page."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "page_title": {
+                        "type": "string",
+                        "description": "Titre de la page à supprimer.",
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": "Justification de la suppression (audit).",
+                    },
+                },
+                "required": ["page_title", "reason"],
+            },
+        },
+    },
 ]
 
 
@@ -174,6 +212,8 @@ async def execute_tool(name: str, args: dict, project_id: str) -> str:
             return await _read_section(args["page_id"], args["anchor"])
         case "search_wiki":
             return await _search_wiki(args["query"], project_id)
+        case "delete_page":
+            return await _delete_page(args["page_title"], args["reason"])
         case _:
             logger.warning("Outil inconnu : %s", name)
             return f"Outil « {name} » inconnu."

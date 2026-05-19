@@ -149,3 +149,11 @@ async def delete_wiki_page(page_id: str) -> None:
         if page and page.id == page_id:
             path.unlink()
             return
+
+
+async def delete_wiki_page_by_title(project_id: str, title: str) -> bool:
+    path = _wiki_dir() / _safe_filename(title)
+    if not path.exists():
+        return False
+    path.unlink()
+    return True
