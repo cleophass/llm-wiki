@@ -24,7 +24,7 @@ Le wiki est organisé en **pages** et **sections**. Chaque section appartient \
 
 ## Wiki actuel du projet
 
-{wiki_index}
+{{wiki_index}}
 
 ## Outils disponibles
 

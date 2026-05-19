@@ -1,17 +1,12 @@
-"""Outils wiki exposés au LLM via tool calling.
+"""Outils wiki exposés au LLM via LangChain."""
 
-project_id est injecté par le dispatcher — jamais passé par le LLM.
-"""
-
-import logging
 import re
+
+from langchain_core.tools import tool
 
 from app.db.wiki import get_wiki_page, get_wiki_pages_for_project
 from app.services.wiki.index import build_index
-from app.services.wiki_ingest.edit_plan import DeletePageOp
-
-logger = logging.getLogger(__name__)
-_PENDING_OPS: list[DeletePageOp] = []
+from app.services.wiki_ingest.edit_plan import DeletePageOp, EditOp
 
 
 # ── Implémentations ──────────────────────────────────────────────────────────
@@ -86,134 +81,31 @@ async def _search_wiki(query: str, project_id: str) -> str:
     return "\n".join(results)
 
 
-async def _delete_page(page_title: str, reason: str) -> str:
-    """Ajoute une opération de suppression de page au plan en construction."""
-    _PENDING_OPS.append(DeletePageOp(op="delete_page", page_title=page_title, reason=reason))
-    return f"Suppression planifiée pour la page « {page_title} »."
+def build_wiki_tools(project_id: str, pending_ops: list[EditOp]) -> list:
+    @tool
+    async def list_pages() -> str:
+        """Liste toutes les pages wiki du projet avec leurs sections."""
+        return await _list_pages(project_id)
 
+    @tool
+    async def get_page_outline(page_id: str) -> str:
+        """Retourne les sections d'une page (ancre + titre) sans leur contenu."""
+        return await _get_page_outline(page_id)
 
-def consume_pending_ops() -> list[DeletePageOp]:
-    ops = list(_PENDING_OPS)
-    _PENDING_OPS.clear()
-    return ops
+    @tool
+    async def read_section(page_id: str, anchor: str) -> str:
+        """Retourne le contenu Markdown d'une section précise."""
+        return await _read_section(page_id, anchor)
 
+    @tool
+    async def search_wiki(query: str) -> str:
+        """Recherche un mot-clé dans les titres et contenus de sections du wiki."""
+        return await _search_wiki(query, project_id)
 
-# ── Définitions JSON Schema ──────────────────────────────────────────────────
+    @tool
+    async def delete_page(page_title: str, reason: str) -> str:
+        """Planifie la suppression d'une page wiki."""
+        pending_ops.append(DeletePageOp(op="delete_page", page_title=page_title, reason=reason))
+        return f"Suppression planifiée pour la page « {page_title} »."
 
-WIKI_TOOLS: list[dict] = [
-    {
-        "type": "function",
-        "function": {
-            "name": "list_pages",
-            "description": (
-                "Liste toutes les pages wiki du projet avec leurs sections (ancre + titre). "
-                "À appeler en premier pour avoir une vue d'ensemble du wiki."
-            ),
-            "parameters": {"type": "object", "properties": {}},
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_page_outline",
-            "description": (
-                "Retourne les sections d'une page (ancre + titre) sans leur contenu. "
-                "Utile pour identifier quelles sections lire avant d'appeler read_section."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "page_id": {
-                        "type": "string",
-                        "description": "ID de la page (ex: resultats_experimentation_a1b2c3).",
-                    },
-                },
-                "required": ["page_id"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "read_section",
-            "description": (
-                "Retourne le contenu Markdown d'une section précise, identifiée par son ancre. "
-                "Plus efficace que lire la page entière quand seule une partie est nécessaire."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "page_id": {
-                        "type": "string",
-                        "description": "ID de la page.",
-                    },
-                    "anchor": {
-                        "type": "string",
-                        "description": "Ancre de la section (ex: resultats_experimentaux).",
-                    },
-                },
-                "required": ["page_id", "anchor"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "search_wiki",
-            "description": "Recherche un mot-clé dans les titres et contenus de sections du wiki.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "Mot-clé ou expression à rechercher.",
-                    },
-                },
-                "required": ["query"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "delete_page",
-            "description": (
-                "Planifie la suppression d'une page wiki. À utiliser seulement après "
-                "migration du contenu vers une autre page."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "page_title": {
-                        "type": "string",
-                        "description": "Titre de la page à supprimer.",
-                    },
-                    "reason": {
-                        "type": "string",
-                        "description": "Justification de la suppression (audit).",
-                    },
-                },
-                "required": ["page_title", "reason"],
-            },
-        },
-    },
-]
-
-
-# ── Dispatcher ───────────────────────────────────────────────────────────────
-
-async def execute_tool(name: str, args: dict, project_id: str) -> str:
-    match name:
-        case "list_pages":
-            return await _list_pages(project_id)
-        case "get_page_outline":
-            return await _get_page_outline(args["page_id"])
-        case "read_section":
-            return await _read_section(args["page_id"], args["anchor"])
-        case "search_wiki":
-            return await _search_wiki(args["query"], project_id)
-        case "delete_page":
-            return await _delete_page(args["page_title"], args["reason"])
-        case _:
-            logger.warning("Outil inconnu : %s", name)
-            return f"Outil « {name} » inconnu."
+    return [list_pages, get_page_outline, read_section, search_wiki, delete_page]

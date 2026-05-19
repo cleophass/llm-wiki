@@ -2,12 +2,51 @@
 
 import logging
 
+from langsmith import traceable as _traceable
+
+from app.config import settings
 from app.db.wiki import delete_section, delete_wiki_page_by_title, upsert_section
 from app.services.wiki_ingest.edit_plan import DeletePageOp, DeleteSectionOp, EditPlan, WriteSectionOp
 
 logger = logging.getLogger(__name__)
 
 
+def traceable(func):
+    if not settings.LANGSMITH_TRACING:
+        return func
+    return _traceable(func)
+
+
+@traceable
+async def _apply_write_section(op: WriteSectionOp, project_id: str) -> None:
+    await upsert_section(
+        project_id,
+        op.page_title,
+        op.section_title,
+        op.content,
+    )
+    logger.debug(
+        "[executor] write_section '%s' / '%s'",
+        op.page_title,
+        op.section_title,
+    )
+
+
+@traceable
+async def _apply_delete_section(op: DeleteSectionOp, project_id: str) -> None:
+    await delete_section(
+        project_id,
+        op.page_title,
+        op.section_title,
+    )
+    logger.debug(
+        "[executor] delete_section '%s' / '%s'",
+        op.page_title,
+        op.section_title,
+    )
+
+
+@traceable
 async def _apply_delete_page(op: DeletePageOp, project_id: str) -> None:
     deleted = await delete_wiki_page_by_title(project_id, op.page_title)
     if not deleted:
@@ -23,34 +62,16 @@ async def _apply_delete_page(op: DeletePageOp, project_id: str) -> None:
     )
 
 
-async def run_executor(plan: EditPlan, project_id: str) -> None:
+@traceable
+async def apply_edit_plan(plan: EditPlan, project_id: str) -> None:
     """Applique toutes les opérations du plan sur MongoDB, dans l'ordre."""
     for op in plan.ops:
         try:
             match op:
                 case WriteSectionOp():
-                    await upsert_section(
-                        project_id,
-                        op.page_title,
-                        op.section_title,
-                        op.content,
-                    )
-                    logger.debug(
-                        "[executor] write_section '%s' / '%s'",
-                        op.page_title,
-                        op.section_title,
-                    )
+                    await _apply_write_section(op, project_id)
                 case DeleteSectionOp():
-                    await delete_section(
-                        project_id,
-                        op.page_title,
-                        op.section_title,
-                    )
-                    logger.debug(
-                        "[executor] delete_section '%s' / '%s'",
-                        op.page_title,
-                        op.section_title,
-                    )
+                    await _apply_delete_section(op, project_id)
                 case DeletePageOp():
                     await _apply_delete_page(op, project_id)
         except Exception as exc:
@@ -62,3 +83,7 @@ async def run_executor(plan: EditPlan, project_id: str) -> None:
                 exc,
             )
             raise
+
+
+async def run_executor(plan: EditPlan, project_id: str) -> None:
+    await apply_edit_plan(plan, project_id)
