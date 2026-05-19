@@ -4,7 +4,11 @@ import logging
 import os
 from typing import Any
 
-from langchain.agents import AgentExecutor, create_tool_calling_agent
+try:
+    from langchain.agents import AgentExecutor, create_tool_calling_agent
+except ImportError:
+    from langchain.agents import create_tool_calling_agent
+    from langchain.agents.agent import AgentExecutor
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
