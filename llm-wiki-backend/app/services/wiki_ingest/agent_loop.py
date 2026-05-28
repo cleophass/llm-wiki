@@ -1,109 +1,129 @@
-"""Boucle agentique LangChain pour les agents wiki."""
+"""Boucle agentique — tool calling Anthropic."""
 
 import logging
-import os
 from typing import Any
 
-try:
-    from langchain.agents import AgentExecutor, create_tool_calling_agent
-except ImportError:
-    from langchain.agents import create_tool_calling_agent
-    from langchain.agents.agent import AgentExecutor
-from langchain_anthropic import ChatAnthropic
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.tools import tool
-from pydantic import BaseModel
-
-from app.config import settings
-from app.services.wiki.tools import build_wiki_tools
-from app.services.wiki_ingest.edit_plan import EditOp
+from app.services.llm.client import llm_client, make_tool_result
+from app.services.llm.models import LLMModel
+from app.services.wiki.tools import WIKI_TOOL_SCHEMAS, execute_wiki_tool
 
 logger = logging.getLogger(__name__)
 
-
-def _configure_langsmith() -> None:
-    if not settings.LANGSMITH_TRACING:
-        return
-    os.environ.setdefault("LANGCHAIN_TRACING_V2", "true")
-    if settings.LANGSMITH_API_KEY:
-        os.environ.setdefault("LANGSMITH_API_KEY", settings.LANGSMITH_API_KEY)
-    os.environ.setdefault("LANGSMITH_PROJECT", settings.LANGSMITH_PROJECT)
-
-
-def _build_prompt(messages: list[dict]) -> tuple[ChatPromptTemplate, str]:
-    if not messages:
-        return ChatPromptTemplate.from_messages([("human", "{input}")]), ""
-    user_content = messages[-1]["content"] if messages[-1]["role"] == "user" else ""
-    prompt_messages: list[tuple[str, str]] = []
-    for m in messages[:-1]:
-        role = m["role"]
-        if role == "user":
-            role = "human"
-        elif role == "assistant":
-            role = "ai"
-        prompt_messages.append((role, m["content"]))
-    prompt_messages.append(("human", "{input}"))
-    prompt_messages.append(("placeholder", "{agent_scratchpad}"))
-    return ChatPromptTemplate.from_messages(prompt_messages), user_content
-
-
-def _build_finalize_tool(finalize_tool_name: str, pending_ops: list[EditOp]):
-    if finalize_tool_name == "finalize_writing":
-        @tool(name=finalize_tool_name, return_direct=True)
-        def finalize_writing(ops: list[dict]) -> dict:
-            merged = [*ops, *[op.model_dump() for op in pending_ops]]
-            return {"ops": merged}
-
-        return finalize_writing
-
-    if finalize_tool_name == "finalize_context":
-        @tool(name=finalize_tool_name, return_direct=True)
-        def finalize_context(relevant_content: str) -> dict:
-            return {"relevant_content": relevant_content}
-
-        return finalize_context
-
-    @tool(name=finalize_tool_name, return_direct=True)
-    def finalize_generic(payload: dict) -> dict:
-        return payload
-
-    return finalize_generic
+_FINALIZE_SCHEMAS: dict[str, dict] = {
+    "answer_directly": {
+        "type": "function",
+        "function": {
+            "name": "answer_directly",
+            "description": (
+                "Répond directement à la question sans explorer le wiki. "
+                "À utiliser uniquement si la question ne nécessite pas d'accès au wiki "
+                "(salutation, question générale, reformulation, clarification)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "answer": {"type": "string", "description": "La réponse complète en Markdown."},
+                },
+                "required": ["answer"],
+            },
+        },
+    },
+    "finalize_writing": {
+        "type": "function",
+        "function": {
+            "name": "finalize_writing",
+            "description": "Soumet les opérations d'édition wiki et termine l'exploration.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ops": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "oneOf": [
+                                {
+                                    "properties": {
+                                        "op": {"type": "string", "enum": ["write_section"]},
+                                        "page_title": {"type": "string"},
+                                        "section_title": {"type": "string"},
+                                        "content": {"type": "string"},
+                                    },
+                                    "required": ["op", "page_title", "section_title", "content"],
+                                },
+                                {
+                                    "properties": {
+                                        "op": {"type": "string", "enum": ["delete_section"]},
+                                        "page_title": {"type": "string"},
+                                        "section_title": {"type": "string"},
+                                    },
+                                    "required": ["op", "page_title", "section_title"],
+                                },
+                            ],
+                        },
+                    },
+                },
+                "required": ["ops"],
+            },
+        },
+    },
+}
 
 
 async def run_wiki_agent_loop(
     *,
     project_id: str,
     messages: list[dict],
-    finalize_tool: dict | None = None,
     finalize_tool_name: str = "finalize_writing",
     max_tool_calls: int = 15,
     label: str = "agent",
-    output_model: type[BaseModel] | None = None,
+    output_model: Any = None,
+    collect_steps: bool = False,
 ) -> Any:
-    """Exécute la boucle agentique et retourne les données de l'outil finalize."""
-    _ = finalize_tool
-    _configure_langsmith()
-    pending_ops: list[EditOp] = []
-    tools = build_wiki_tools(project_id, pending_ops)
-    tools.append(_build_finalize_tool(finalize_tool_name, pending_ops))
+    history = list(messages)
+    tools = WIKI_TOOL_SCHEMAS + [_FINALIZE_SCHEMAS[finalize_tool_name]]
+    steps: list[dict] = []
 
-    prompt, user_input = _build_prompt(messages)
-    llm = ChatAnthropic(model=settings.anthropic_model)
-    agent = create_tool_calling_agent(llm, tools, prompt)
-    executor = AgentExecutor(
-        agent=agent,
-        tools=tools,
-        max_iterations=max_tool_calls,
-        verbose=False,
-    )
+    for step in range(max_tool_calls):
+        response = await llm_client.chat_once(
+            model=LLMModel.LARGE,
+            messages=history,
+            tools=tools,
+        )
+        history.append(response.as_dict())
 
-    result: Any = await executor.ainvoke({"input": user_input})
+        if not response.tool_calls:
+            logger.warning("[%s] step=%d — aucun tool call, arrêt.", label, step)
+            break
+
+        if collect_steps and response.content:
+            steps.append({"type": "thought", "text": response.content})
+
+        finalize_result = None
+        for tc in response.tool_calls:
+            if tc.name == finalize_tool_name:
+                finalize_result = tc.arguments
+                history.append(make_tool_result(tc.id, "OK"))
+            else:
+                tool_result = await execute_wiki_tool(tc.name, tc.arguments, project_id)
+                if collect_steps:
+                    steps.append({"type": "tool_call", "name": tc.name, "args": tc.arguments, "result": tool_result})
+                history.append(make_tool_result(tc.id, tool_result))
+
+        if finalize_result is not None:
+            logger.info("[%s] '%s' appelé à step=%d.", label, finalize_tool_name, step)
+            if output_model is not None:
+                result = output_model.model_validate(finalize_result)
+            else:
+                result = finalize_result
+            if collect_steps:
+                return {"result": result, "steps": steps}
+            return result
+
+    logger.warning("[%s] terminé sans finalize.", label)
     if output_model is not None:
-        if isinstance(result, dict):
-            return output_model.model_validate(result)
-        logger.warning("[%s] Réponse texte sans outil finalize.", label)
-        return output_model.model_validate({"ops": pending_ops})
-    if not isinstance(result, dict):
-        logger.warning("[%s] Réponse texte sans outil finalize.", label)
-        return {}
+        result = output_model.model_validate({"ops": []})
+    else:
+        result = {}
+    if collect_steps:
+        return {"result": result, "steps": steps}
     return result

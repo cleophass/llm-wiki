@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+
+# Backend
+llm-wiki-backend/__pycache__/
+llm-wiki-backend/**/__pycache__/
+llm-wiki-backend/*.py[cod]
+llm-wiki-backend/.venv/
+llm-wiki-backend/.env
+llm-wiki-backend/.pytest_cache/
+llm-wiki-backend/.mypy_cache/
+llm-wiki-backend/.ruff_cache/
+llm-wiki-backend/dist/
+llm-wiki-backend/build/
+llm-wiki-backend/*.egg-info/
+llm-wiki-backend/.coverage
+llm-wiki-backend/htmlcov/
+llm-wiki-backend/token_gen.py
+llm-wiki-backend/.claude/
+
+# Frontend
+llm-wiki-frontend/node_modules/
+llm-wiki-frontend/.next/
+llm-wiki-frontend/out/
+llm-wiki-frontend/.env.local
+llm-wiki-frontend/.env
+llm-wiki-frontend/*.tsbuildinfo
+llm-wiki-frontend/next-env.d.ts
+llm-wiki-frontend/.claude/

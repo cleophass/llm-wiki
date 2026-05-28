@@ -1,6 +1,6 @@
 """Modèles d'opérations d'édition wiki au niveau section.
 
-Produits par le scout, consommés par l'executor.
+Produits par le explorer, consommés par l'executor.
 """
 
 from typing import Literal

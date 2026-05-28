@@ -1,111 +1,128 @@
-"""Outils wiki exposés au LLM via LangChain."""
+"""Outils wiki — schémas + dispatcher."""
 
 import re
 
-from langchain_core.tools import tool
-
-from app.db.wiki import get_wiki_page, get_wiki_pages_for_project
+from app.db.wiki import create_wiki_page, get_wiki_page, get_wiki_pages_for_project
 from app.services.wiki.index import build_index
-from app.services.wiki_ingest.edit_plan import DeletePageOp, EditOp
+from app.services.wiki.models import PAGE_TYPES
 
 
-# ── Implémentations ──────────────────────────────────────────────────────────
+WIKI_TOOL_SCHEMAS: list[dict] = [
+    {
+        "type": "function",
+        "function": {
+            "name": "create_page",
+            "description": "Crée une nouvelle page wiki vide avec son type. À appeler avant d'écrire des sections sur une page inexistante.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "page_title": {"type": "string", "description": "Titre de la nouvelle page"},
+                    "page_type": {
+                        "type": "string",
+                        "enum": list(PAGE_TYPES),
+                        "description": "Type de page selon le schéma wiki",
+                    },
+                },
+                "required": ["page_title", "page_type"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_pages",
+            "description": "Liste toutes les pages wiki du projet avec leurs sections.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_page_outline",
+            "description": "Retourne les sections d'une page (ancre + titre) sans leur contenu.",
+            "parameters": {
+                "type": "object",
+                "properties": {"page_id": {"type": "string"}},
+                "required": ["page_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "read_section",
+            "description": "Retourne le contenu Markdown d'une section précise.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "page_id": {"type": "string"},
+                    "anchor": {"type": "string"},
+                },
+                "required": ["page_id", "anchor"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_wiki",
+            "description": "Recherche un mot-clé (regex) dans les titres et contenus de sections.",
+            "parameters": {
+                "type": "object",
+                "properties": {"query": {"type": "string"}},
+                "required": ["query"],
+            },
+        },
+    },
+]
 
 
-async def _list_pages(project_id: str) -> str:
-    """Retourne l'index complet : pages + liste des sections (sans leur contenu)."""
-    return await build_index(project_id)
+async def execute_wiki_tool(name: str, inputs: dict, project_id: str) -> str:
+    if name == "create_page":
+        created = await create_wiki_page(project_id, inputs["page_title"], inputs["page_type"])
+        if created:
+            return f"Page « {inputs['page_title']} » créée avec le type « {inputs['page_type']} »."
+        return f"Page « {inputs['page_title']} » existe déjà — type non modifié."
 
+    if name == "list_pages":
+        return await build_index(project_id)
 
-async def _get_page_outline(page_id: str) -> str:
-    """Retourne le titre et les sections d'une page, sans leur contenu."""
-    page = await get_wiki_page(page_id)
-    if page is None:
-        return f"Page « {page_id} » introuvable."
+    if name == "get_page_outline":
+        page = await get_wiki_page(inputs["page_id"])
+        if page is None:
+            return f"Page « {inputs['page_id']} » introuvable."
+        lines = [f"[{page.id}] {page.title}  (version {page.version})", "Sections :"]
+        lines += [f"  - {s.anchor}: {s.title}" for s in page.sections] or ["  (aucune section)"]
+        return "\n".join(lines)
 
-    lines = [
-        f"[{page.id}] {page.title}  (version {page.version})",
-        "Sections :",
-    ]
-    if page.sections:
+    if name == "read_section":
+        page = await get_wiki_page(inputs["page_id"])
+        if page is None:
+            return f"Page « {inputs['page_id']} » introuvable."
         for s in page.sections:
-            lines.append(f"  - {s.anchor}: {s.title}")
-    else:
-        lines.append("  (aucune section)")
-    return "\n".join(lines)
+            if s.anchor == inputs["anchor"]:
+                return f"## {s.title}\n\n{s.content or '(section vide)'}"
+        available = ", ".join(s.anchor for s in page.sections) or "aucune"
+        return f"Section « {inputs['anchor']} » introuvable. Ancres disponibles : {available}"
 
+    if name == "search_wiki":
+        pages = await get_wiki_pages_for_project(project_id)
+        if not pages:
+            return "Aucune page wiki trouvée."
+        try:
+            pattern = re.compile(inputs["query"], re.IGNORECASE)
+        except re.error:
+            pattern = re.compile(re.escape(inputs["query"]), re.IGNORECASE)
+        results: list[str] = []
+        for page in pages:
+            matched = []
+            for s in page.sections:
+                if pattern.search(s.title) or pattern.search(s.content):
+                    preview = s.content[:150].replace("\n", " ")
+                    matched.append(f"  [{s.anchor}] {s.title}\n    {preview}…")
+            if matched or pattern.search(page.title):
+                results.append(f"[{page.id}] {page.title}")
+                results.extend(matched)
+        return "\n".join(results) if results else f"Aucune correspondance pour « {inputs['query']} »."
 
-async def _read_section(page_id: str, anchor: str) -> str:
-    """Retourne le contenu Markdown d'une section précise (identifiée par son ancre)."""
-    page = await get_wiki_page(page_id)
-    if page is None:
-        return f"Page « {page_id} » introuvable."
-
-    for s in page.sections:
-        if s.anchor == anchor:
-            if not s.content.strip():
-                return f"## {s.title}\n\n(section vide)"
-            return f"## {s.title}\n\n{s.content}"
-
-    available = ", ".join(f"{s.anchor}" for s in page.sections) or "aucune"
-    return (
-        f"Section « {anchor} » introuvable dans la page « {page.title} ».\n"
-        f"Ancres disponibles : {available}"
-    )
-
-
-async def _search_wiki(query: str, project_id: str) -> str:
-    """Recherche un mot-clé dans les titres et contenus de sections."""
-    pages = await get_wiki_pages_for_project(project_id)
-    if not pages:
-        return "Aucune page wiki trouvée pour ce projet."
-
-    try:
-        pattern = re.compile(query, re.IGNORECASE)
-    except re.error:
-        pattern = re.compile(re.escape(query), re.IGNORECASE)
-    results: list[str] = []
-
-    for page in pages:
-        matched: list[str] = []
-        for s in page.sections:
-            if pattern.search(s.title) or pattern.search(s.content):
-                preview = s.content[:150].replace("\n", " ")
-                matched.append(f"  [{s.anchor}] {s.title}\n    {preview}…")
-        if matched or pattern.search(page.title):
-            results.append(f"[{page.id}] {page.title}")
-            results.extend(matched)
-
-    if not results:
-        return f"Aucune correspondance pour « {query} »."
-    return "\n".join(results)
-
-
-def build_wiki_tools(project_id: str, pending_ops: list[EditOp]) -> list:
-    @tool
-    async def list_pages() -> str:
-        """Liste toutes les pages wiki du projet avec leurs sections."""
-        return await _list_pages(project_id)
-
-    @tool
-    async def get_page_outline(page_id: str) -> str:
-        """Retourne les sections d'une page (ancre + titre) sans leur contenu."""
-        return await _get_page_outline(page_id)
-
-    @tool
-    async def read_section(page_id: str, anchor: str) -> str:
-        """Retourne le contenu Markdown d'une section précise."""
-        return await _read_section(page_id, anchor)
-
-    @tool
-    async def search_wiki(query: str) -> str:
-        """Recherche un mot-clé dans les titres et contenus de sections du wiki."""
-        return await _search_wiki(query, project_id)
-
-    @tool
-    async def delete_page(page_title: str, reason: str) -> str:
-        """Planifie la suppression d'une page wiki."""
-        pending_ops.append(DeletePageOp(op="delete_page", page_title=page_title, reason=reason))
-        return f"Suppression planifiée pour la page « {page_title} »."
-
-    return [list_pages, get_page_outline, read_section, search_wiki, delete_page]
+    return f"Outil inconnu : {name}"

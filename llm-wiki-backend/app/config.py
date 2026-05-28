@@ -8,11 +8,9 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    # --- OpenAI (LLM) ---
-    openai_api_key: str | None = None
-
     # --- Anthropic (LLM) ---
-    anthropic_model: str = "claude-sonnet-4-5"
+    anthropic_api_key: str | None = None
+
 
     # --- Mistral (OCR uniquement) ---
     mistral_api_key: str | None = None
@@ -29,10 +27,8 @@ class Settings(BaseSettings):
     # --- CORS ---
     cors_origins: list[str] = ["http://localhost:3000"]
 
-    # --- LangSmith ---
-    LANGSMITH_TRACING: bool = False
-    LANGSMITH_API_KEY: str | None = None
-    LANGSMITH_PROJECT: str = "aimo-wiki-ingest"
+    # --- MLflow ---
+    mlflow_tracking_uri: str = "http://localhost:5001"
 
 
 settings = Settings()

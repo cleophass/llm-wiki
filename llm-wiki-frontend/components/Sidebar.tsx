@@ -11,6 +11,7 @@ export function Sidebar({ conversations }: { conversations: Conversation[] }) {
   const [creating, setCreating] = useState(false)
 
   const activeId = pathname.match(/\/conversations\/([^/]+)/)?.[1]
+  const isWiki = pathname.startsWith("/wiki")
 
   async function handleNew() {
     setCreating(true)
@@ -43,26 +44,7 @@ export function Sidebar({ conversations }: { conversations: Conversation[] }) {
 
       <div className="h-px bg-hairline-soft mb-2" />
 
-      <div className="px-3 pb-3">
-        <p className="px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-soft mb-2">
-          Accès rapide
-        </p>
-        {activeId ? (
-          <Link
-            href={`/conversations/${activeId}/wiki`}
-            className="flex items-center justify-between rounded-lg border border-hairline px-3 py-2 text-[12px] text-ink bg-surface-soft hover:border-muted-soft transition-colors"
-          >
-            Wiki du dossier
-            <span className="text-muted">→</span>
-          </Link>
-        ) : (
-          <p className="px-2 text-[12px] text-muted-soft">
-            Sélectionne une conversation pour accéder au wiki.
-          </p>
-        )}
-      </div>
-
-      {/* Conversation list */}
+      {/* Conversations */}
       <nav className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5">
         {conversations.length === 0 && (
           <p className="px-3 py-2 text-xs text-muted-soft">Aucune conversation</p>
@@ -86,6 +68,25 @@ export function Sidebar({ conversations }: { conversations: Conversation[] }) {
         })}
       </nav>
 
+      {/* Wiki global */}
+      <div className="shrink-0 px-2 pb-4">
+        <div className="h-px bg-hairline-soft mb-3" />
+        <Link
+          href="/wiki"
+          className="flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] transition-colors"
+          style={{
+            background: isWiki ? "var(--color-surface-card)" : "transparent",
+            color: isWiki ? "var(--color-ink)" : "var(--color-muted)",
+            fontWeight: isWiki ? 500 : 400,
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+            <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.25"/>
+            <path d="M5 6h6M5 9h4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round"/>
+          </svg>
+          Wiki
+        </Link>
+      </div>
     </aside>
   )
 }

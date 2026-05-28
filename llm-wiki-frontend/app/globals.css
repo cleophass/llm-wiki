@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  /* ── Palette Notion-inspired ── */
+  --color-primary:               #2383e2;   /* bleu Notion */
+  --color-primary-active:        #1a6bbf;
+
+  --color-ink:                   #37352f;   /* noir Notion */
+  --color-body:                  #37352f;
+  --color-muted:                 #787774;   /* gris Notion medium */
+  --color-muted-soft:            #9b9a97;   /* gris Notion light */
+
+  --color-hairline:              #e9e9e7;   /* séparateurs Notion */
+  --color-hairline-soft:         #f1f1ef;
+
+  --color-canvas:                #ffffff;   /* fond blanc pur */
+  --color-surface-soft:          #f7f6f3;   /* hover léger Notion */
+  --color-surface-card:          #efefed;   /* card Notion */
+  --color-surface-cream-strong:  #e3e2df;   /* plus marqué */
+
+  --color-surface-dark:          #1f1f1f;
+  --color-surface-dark-elevated: #2d2d2d;
+  --color-surface-dark-soft:     #272727;
+  --color-on-dark:               #f7f6f3;
+  --color-on-dark-soft:          #9b9a97;
+
+  --color-accent-teal:           #0f9b8e;
+  --color-accent-amber:          #d9730d;
+  --color-success:               #0f9b58;
+
+  /* ── Fonts ── */
+  --font-display: "Inter";           /* sobre, pas de serif */
+  --font-body:    "Inter";
+  --font-mono:    "JetBrains Mono";
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-body);
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-hairline); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-surface-card); }

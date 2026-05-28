@@ -1,0 +1,39 @@
+services:
+  backend:
+    build: ./llm-wiki-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file: ./llm-wiki-backend/.env
+    environment:
+      CORS_ORIGINS: '["http://localhost:3000"]'
+      WIKI_DIR: /app/wiki
+      CONVERSATIONS_DIR: /app/conversations
+      INGESTION_HISTORY_DIR: /app/ingestion_history
+      MLFLOW_TRACKING_URI: http://mlflow:5001
+    volumes:
+      - ./wiki:/app/wiki
+      - ./conversations:/app/conversations
+      - ./ingestion_history:/app/ingestion_history
+    depends_on:
+      - mlflow
+
+  frontend:
+    build: ./llm-wiki-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      - backend
+
+  mlflow:
+    build:
+      context: .
+      dockerfile: mlflow.Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./mlruns:/mlruns

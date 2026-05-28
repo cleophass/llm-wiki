@@ -1,0 +1,219 @@
+{
+  "main": {
+    "id": "426555c1beb2d1be",
+    "type": "split",
+    "children": [
+      {
+        "id": "7b8eb745033f78c0",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "122ee91268bf2881",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "organisation/Msg Diag - Agenda.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Msg Diag - Agenda"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "4753db1837a0c81f",
+    "type": "split",
+    "children": [
+      {
+        "id": "ed18fbf37ec5a8cd",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "9d6755b4327525e0",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "5629de8ef5d3aaaa",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "1a569d885920c9e1",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "eba655817bba7122",
+    "type": "split",
+    "children": [
+      {
+        "id": "2fcff121ac4474ee",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "7f4febe45a40c11e",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Combronde Immobilier Sarl.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for Combronde Immobilier Sarl"
+            }
+          },
+          {
+            "id": "9ac2a97d36e94643",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Combronde Immobilier Sarl.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Combronde Immobilier Sarl"
+            }
+          },
+          {
+            "id": "7a7c20cb7a4e659e",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "be3a148f504dd745",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "9438182660c1cfe6",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Combronde Immobilier Sarl.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Combronde Immobilier Sarl"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "122ee91268bf2881",
+  "lastOpenFiles": [
+    "bien/42 Ter Boulevard Desaix, Riom.md",
+    "personne/Celia Sevellec.md",
+    "organisation/Mon Agence Familiale.md",
+    "personne/Christophe Combronde (Agent Immobilier).md",
+    "bien/Appartement 42 Ter Boulevard Desaix, Riom.md",
+    "personne/Christophe Combronde.md",
+    "document/Dpe Appartement 10 Rue Daurat — 2025-10-03.md",
+    "bien/Appartement 10 Rue Daurat, Riom.md",
+    "organisation/Combronde Immobilier Sarl.md",
+    "document",
+    "organisation/Msg Diag - Agenda.md",
+    "organisation",
+    "personne",
+    "bien",
+    "Annonce ImmobilièRe - Riom Centre Historique T4.md",
+    "Christophe Combronde.md",
+    "Mon Agence Familiale.md",
+    "Appartement 42 Ter Boulevard Desaix, Riom.md",
+    "Projets De CléOphas Fournier.md",
+    "Formation De CléOphas Fournier.md",
+    "ExpéRiences Professionnelles De CléOphas Fournier.md",
+    "Certifications De CléOphas Fournier.md",
+    "Efrei.md",
+    "Citio.md",
+    "CréDit Agricole Sa.md",
+    "CréDit Agricole Technologies Et Services.md",
+    "CléOphas Fournier.md",
+    "Combronde Immobilier Sarl.md",
+    "Appartement 42 Ter, Boulevard Desaix, Riom.md",
+    "Annonce De Vente — Riom Centre Historique T4.md"
+  ]
+}

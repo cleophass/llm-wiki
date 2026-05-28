@@ -32,12 +32,16 @@ class WikiSection(BaseModel):
     content: str = ""
 
 
+PAGE_TYPES = ("bien", "copro", "personne", "organisation", "document", "concept", "decision", "risque", "travaux")
+
+
 class WikiPage(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     id: str = Field(alias="_id")
     project_id: str
     title: str
+    page_type: str | None = None
     sections: list[WikiSection] = []
     version: int = 1
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
