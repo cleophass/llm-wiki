@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 
 type IngestionSummary = {
@@ -233,9 +234,10 @@ export function WikiPanel() {
             <p className="text-[13px] text-muted">Aucune ingestion pour l'instant.</p>
           ) : (
             history.map((e) => (
-              <div
+              <Link
                 key={e.id}
-                className="rounded-lg border border-hairline px-4 py-3"
+                href={`/wiki/history/${e.id}`}
+                className="block rounded-lg border border-hairline px-4 py-3 hover:border-muted-soft transition-colors"
               >
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-[13px] font-medium text-ink truncate">
@@ -244,9 +246,6 @@ export function WikiPanel() {
                   <div className="shrink-0 flex gap-2 text-[11px] font-semibold">
                     {e.sections_added > 0 && (
                       <span className="text-green-500">+{e.sections_added}</span>
-                    )}
-                    {e.sections_modified > 0 && (
-                      <span className="text-yellow-500">~{e.sections_modified}</span>
                     )}
                     {e.sections_deleted > 0 && (
                       <span className="text-red-500">−{e.sections_deleted}</span>
@@ -257,7 +256,7 @@ export function WikiPanel() {
                   </div>
                 </div>
                 <p className="text-[11px] text-muted mt-0.5">{formatDate(e.timestamp)}</p>
-              </div>
+              </Link>
             ))
           )}
         </div>

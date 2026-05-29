@@ -84,7 +84,7 @@ export function Sidebar({ conversations }: { conversations: Conversation[] }) {
             <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.25"/>
             <path d="M5 6h6M5 9h4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round"/>
           </svg>
-          Wiki
+          Wiki history
         </Link>
       </div>
     </aside>

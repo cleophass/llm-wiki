@@ -55,6 +55,7 @@ async def run(question: str, context: dict) -> dict:
         finalize_tool_name=_FINALIZE_TOOL_NAME,
         label="wiki_query",
         collect_steps=True,
+        model=LLMModel.SMALL,
     )
     answer = data["result"].get("answer", "").strip() or NO_ANSWER_FALLBACK
     steps = data["steps"]

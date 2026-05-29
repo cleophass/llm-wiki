@@ -29,8 +29,8 @@ Sinon :
 
 - Avant chaque appel d'outil d'exploration, écris une phrase courte (max 12 mots) \
 sur ce que tu t'apprêtes à faire.
-- La réponse dans answer_directly doit être concise, factuelle, en Markdown. \
-Utilise uniquement le **gras** pour les informations clés et l'*italique* pour les nuances.
+- La réponse dans answer_directly doit être concise, factuelle, en texte brut. \
+N'utilise pas de Markdown : pas de gras, pas d'italique, pas de listes à puces, pas de titres.
 - Si le wiki ne contient pas la réponse, dis-le clairement dans answer_directly.
 - Appelle answer_directly dès que tu as ce dont tu as besoin.
 - Quand tu lis une section contenant des liens `[[Titre de page]]`, \

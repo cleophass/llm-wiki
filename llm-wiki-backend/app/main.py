@@ -13,6 +13,7 @@ logging.basicConfig(
 )
 
 mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
+mlflow.anthropic.autolog()
 
 app = FastAPI(
     title="LLM Wiki Backend",

@@ -2,31 +2,11 @@
 
 import re
 
-from app.db.wiki import create_wiki_page, get_wiki_page, get_wiki_pages_for_project
+from app.db.wiki import get_wiki_page, get_wiki_pages_for_project
 from app.services.wiki.index import build_index
-from app.services.wiki.models import PAGE_TYPES
 
 
 WIKI_TOOL_SCHEMAS: list[dict] = [
-    {
-        "type": "function",
-        "function": {
-            "name": "create_page",
-            "description": "Crée une nouvelle page wiki vide avec son type. À appeler avant d'écrire des sections sur une page inexistante.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "page_title": {"type": "string", "description": "Titre de la nouvelle page"},
-                    "page_type": {
-                        "type": "string",
-                        "enum": list(PAGE_TYPES),
-                        "description": "Type de page selon le schéma wiki",
-                    },
-                },
-                "required": ["page_title", "page_type"],
-            },
-        },
-    },
     {
         "type": "function",
         "function": {
@@ -78,12 +58,6 @@ WIKI_TOOL_SCHEMAS: list[dict] = [
 
 
 async def execute_wiki_tool(name: str, inputs: dict, project_id: str) -> str:
-    if name == "create_page":
-        created = await create_wiki_page(project_id, inputs["page_title"], inputs["page_type"])
-        if created:
-            return f"Page « {inputs['page_title']} » créée avec le type « {inputs['page_type']} »."
-        return f"Page « {inputs['page_title']} » existe déjà — type non modifié."
-
     if name == "list_pages":
         return await build_index(project_id)
 

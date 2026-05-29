@@ -64,9 +64,6 @@ export default async function HistoryPage() {
                 {e.sections_added > 0 && (
                   <span className="text-green-500">+{e.sections_added}</span>
                 )}
-                {e.sections_modified > 0 && (
-                  <span className="text-yellow-500">~{e.sections_modified}</span>
-                )}
                 {e.sections_deleted > 0 && (
                   <span className="text-red-500">−{e.sections_deleted}</span>
                 )}

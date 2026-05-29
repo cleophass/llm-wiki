@@ -78,6 +78,7 @@ async def run_wiki_agent_loop(
     label: str = "agent",
     output_model: Any = None,
     collect_steps: bool = False,
+    model: LLMModel = LLMModel.LARGE,
 ) -> Any:
     history = list(messages)
     tools = WIKI_TOOL_SCHEMAS + [_FINALIZE_SCHEMAS[finalize_tool_name]]
@@ -85,9 +86,10 @@ async def run_wiki_agent_loop(
 
     for step in range(max_tool_calls):
         response = await llm_client.chat_once(
-            model=LLMModel.LARGE,
+            model=model,
             messages=history,
             tools=tools,
+            tool_choice="required",
         )
         history.append(response.as_dict())
 

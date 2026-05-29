@@ -47,8 +47,8 @@ export default async function IngestionDetailPage({
 
   return (
     <div className="h-full overflow-y-auto px-10 py-10 max-w-3xl mx-auto">
-      <Link href="/wiki/history" className="text-[12px] text-muted hover:text-ink transition-colors mb-6 inline-block">
-        ← Historique
+      <Link href="/wiki" className="text-[12px] text-muted hover:text-ink transition-colors mb-6 inline-block">
+        ← Wiki
       </Link>
 
       <h1 className="text-[20px] font-semibold text-ink mb-1">
@@ -58,7 +58,6 @@ export default async function IngestionDetailPage({
 
       <div className="flex gap-3 text-[12px] font-medium mb-8">
         {totalAdded > 0 && <span className="text-green-500">+{totalAdded} ajoutée{totalAdded > 1 ? "s" : ""}</span>}
-        {totalModified > 0 && <span className="text-yellow-500">~{totalModified} modifiée{totalModified > 1 ? "s" : ""}</span>}
         {totalDeleted > 0 && <span className="text-red-500">−{totalDeleted} supprimée{totalDeleted > 1 ? "s" : ""}</span>}
         {event.changes.length === 0 && <span className="text-muted">aucun changement</span>}
       </div>
